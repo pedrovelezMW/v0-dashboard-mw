@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import useSWR from "swr"
 import { AlertCircle, RefreshCw } from "lucide-react"
 
@@ -40,6 +40,9 @@ export default function DashboardPage() {
     refreshInterval: 30000,
   })
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [taskNotifications, setTaskNotifications] = useState<MobilityWorkTask[]>([])
+  const seenTaskIds = useRef<Set<string>>(new Set())
+  const hasInitializedTasks = useRef(false)
 
   const tasks: MobilityWorkTask[] = data?.tasks || []
 
@@ -55,17 +58,59 @@ export default function DashboardPage() {
     .slice(0, 10)
   const ongoingTasks = metrics.ongoingTasks.slice(0, 8)
 
+  useEffect(() => {
+    if (!tasks.length) return
+
+    const seen = seenTaskIds.current
+    const newlyCreated: MobilityWorkTask[] = []
+
+    tasks.forEach((task) => {
+      const rawId =
+        task.id || task.mobilityWorkData?.id || `${task.equipmentName || task.equipment || "unknown"}-${getCreatedAt(task)}`
+      const taskId = String(rawId)
+
+      if (!seen.has(taskId)) {
+        seen.add(taskId)
+        if (hasInitializedTasks.current) {
+          newlyCreated.push(task)
+        }
+      }
+    })
+
+    if (!hasInitializedTasks.current) {
+      hasInitializedTasks.current = true
+      return
+    }
+
+    if (newlyCreated.length > 0) {
+      setTaskNotifications((prev) => [...prev, ...newlyCreated])
+    }
+  }, [tasks])
+
+  useEffect(() => {
+    if (taskNotifications.length === 0) return
+
+    const timeout = setTimeout(() => {
+      setTaskNotifications((prev) => prev.slice(1))
+    }, 15000)
+
+    return () => clearTimeout(timeout)
+  }, [taskNotifications])
+
   const handleRefresh = async () => {
     setIsRefreshing(true)
     await mutate()
     setIsRefreshing(false)
   }
 
+  const activeNotification = taskNotifications[0]
+  const activeNotificationCreatedAt = activeNotification ? getCreatedAt(activeNotification) : undefined
+
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-[#2C7AF2] text-slate-50">
         <div className="text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
+          <AlertCircle className="mx-auto h-12 w-12 text-[#FF9D9D]" />
           <h2 className="mt-4 text-xl font-semibold">Impossible de charger les tâches</h2>
           <p className="mt-2 text-sm text-slate-400">Veuillez réessayer ultérieurement.</p>
         </div>
@@ -97,7 +142,28 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-slate-950 px-4 py-8 text-slate-50">
+    <div className="relative min-h-screen bg-[#2C7AF2] px-4 py-8 text-slate-50">
+      {activeNotification && (
+        <div className="pointer-events-none fixed inset-x-0 top-8 z-50 flex justify-center px-4">
+          <div className="w-full max-w-3xl rounded-3xl border-4 border-[#000B2B] bg-[#FF9D9D] p-6 text-[#000B2B] shadow-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.6em] text-[#000B2B]/80">Nouvelle tâche</p>
+            <h2 className="mt-3 text-3xl font-black leading-tight">{activeNotification.equipmentName || activeNotification.equipment || "Équipement"}</h2>
+            <p className="mt-2 text-base font-medium">
+              {truncate(activeNotification.description, 120)}
+            </p>
+            <div className="mt-4 flex flex-col gap-2 text-sm font-semibold sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Créée le {activeNotificationCreatedAt ? formatDate(activeNotificationCreatedAt) : "-"} à
+                {" "}
+                {activeNotificationCreatedAt ? formatTime(activeNotificationCreatedAt) : "-"}
+              </span>
+              <span>
+                Assignée à : {activeNotification.assigneeName || "Non assignée"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="mx-auto max-w-7xl space-y-8">
         <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
