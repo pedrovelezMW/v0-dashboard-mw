@@ -77,13 +77,21 @@ export async function GET() {
     console.log(`[v0] Finished fetching ${allTasks.length} tasks across ${pageCount} pages`)
 
     const tasks: MobilityWorkTask[] = allTasks.map((task: any) => {
+      const primaryAssignee = task.assignees?.individuals?.[0]
       const scheduledDate =
-        task.schedule?.from || task.scheduled?.on || task.scheduledOn || task.createdAt || new Date().toISOString()
+        task.schedule?.from ||
+        task.scheduled?.on ||
+        task.scheduledAt ||
+        task.scheduledOn ||
+        task.startDateTime ||
+        task.createdAt ||
+        new Date().toISOString()
 
       const endDate =
         task.schedule?.to ||
         task.endDateTime ||
         task.dueDateTime ||
+        task.completedAt ||
         new Date(new Date(scheduledDate).getTime() + 2 * 60 * 60 * 1000).toISOString()
 
       console.log(`[v0] Task "${task.description}" scheduled: ${scheduledDate}`)
@@ -92,15 +100,22 @@ export async function GET() {
         id: task.taskId || task.taskShortId,
         title: task.description || "Untitled Task",
         description: task.description || "",
-        status: task.taskState || "scheduled",
+        status: task.taskState || task.status || "scheduled",
+        taskState: task.taskState || task.status,
         startDateTime: scheduledDate,
         endDateTime: endDate,
-        assignedTo: task.assignedTo?.name || task.assignees?.individuals?.[0]?.firstName || "Unassigned",
+        scheduledAt: scheduledDate,
+        createdAt: task.createdAt,
+        completedAt: task.completedAt || task.completed?.at,
+        startedAt: task.startedAt || task.started?.at,
+        assigneeName:
+          task.assignedTo?.name ||
+          (primaryAssignee ? `${primaryAssignee.firstName ?? ""} ${primaryAssignee.lastName ?? ""}`.trim() : undefined),
         assignees: task.assignees?.individuals || [],
         priority: task.priority || "medium",
         tags: task.tags || [],
-        equipment: task.equipment?.name || task.associatedTo?.name,
-        location: task.location?.name,
+        equipment: task.equipment?.id || task.associatedTo?.id,
+        equipmentName: task.equipment?.name || task.associatedTo?.name,
         mobilityWorkData: task,
       }
     })

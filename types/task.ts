@@ -1,43 +1,29 @@
 export interface MobilityWorkTask {
   id: string
-  equipment?: number | string
+  title?: string
   description: string
   startDateTime: string
   endDateTime: string
-  allDay: boolean
+  allDay?: boolean
+  equipment?: number | string
+  equipmentName?: string
+  descriptionShort?: string
+  assigneeName?: string
   assignees?: (number | string | { firstName: string; lastName: string; email: string })[]
   status?: "pending" | "in-progress" | "completed" | "scheduled"
-  createdAt: string
-  mobilityWorkData?: {
-    taskId?: string
-    tags?: Array<{
-      code: string
-      name: string
-      groupId: number | null
-      groupName: string | null
-    }>
-    scheduledBy?: {
-      userId: string
-      firstName: string
-      lastName: string
-    }
-    associatedTo?: {
-      _type: string
-      type: string
-      id: string
-      legacyId?: string
-      itemCode?: string | null
-      name: string
-      tags?: Array<{
-        code: string
-        name: string
-        groupId: number | null
-        groupName: string | null
-      }>
-      costCenter?: string
-    }
-    metadata?: any[]
-  }
+  taskState?: string
+  createdAt?: string
+  scheduledAt?: string
+  completedAt?: string
+  startedAt?: string
+  priority?: string
+  tags?: Array<{
+    code: string
+    name: string
+    groupId: number | null
+    groupName: string | null
+  }>
+  mobilityWorkData?: any
 }
 
 export interface TaskStats {
