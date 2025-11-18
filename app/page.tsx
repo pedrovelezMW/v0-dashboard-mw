@@ -64,14 +64,14 @@ export default function DashboardPage() {
   const totalTasks = data?.total || 0
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen px-4 py-10">
       {newTasks.map((task, index) => (
         <div key={task.id} style={{ top: `${4 + index * 8}rem` }}>
           <NewTaskNotification task={task} onDismiss={() => dismissNotification(task.id)} />
         </div>
       ))}
 
-      <div className="container mx-auto p-6 space-y-8">
+      <div className="mx-auto max-w-6xl space-y-8 rounded-3xl border border-white/20 bg-white/10 p-6 text-foreground shadow-[0_35px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
