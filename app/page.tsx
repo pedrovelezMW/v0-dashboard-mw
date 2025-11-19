@@ -2,9 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import useSWR from "swr"
-import { AlertCircle, RefreshCw } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
+import { AlertCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   buildDashboardMetrics,
@@ -16,6 +14,24 @@ import {
 import type { MobilityWorkTask } from "@/types/task"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
+
+const formatTimeSince = (date: Date | null, now: number) => {
+  if (!date) return "Synchronisation en cours…"
+
+  const diffSeconds = Math.max(0, Math.floor((now - date.getTime()) / 1000))
+
+  if (diffSeconds < 5) return "Actualisé à l'instant"
+  if (diffSeconds < 60) return `Actualisé il y a ${diffSeconds}s`
+
+  const diffMinutes = Math.floor(diffSeconds / 60)
+  if (diffMinutes < 60) return `Actualisé il y a ${diffMinutes} min`
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `Actualisé il y a ${diffHours} h`
+
+  const diffDays = Math.floor(diffHours / 24)
+  return `Actualisé il y a ${diffDays} j`
+}
 
 const stateLabels: Record<string, string> = {
   planned: "Planifiée",
@@ -42,10 +58,11 @@ const getScheduledAt = (task: MobilityWorkTask) =>
   task.startDateTime
 
 export default function DashboardPage() {
-  const { data, error, isLoading, mutate } = useSWR("/api/tasks", fetcher, {
+  const { data, error } = useSWR("/api/tasks", fetcher, {
     refreshInterval: 30000,
   })
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null)
+  const [relativeNow, setRelativeNow] = useState(Date.now())
   const [taskNotifications, setTaskNotifications] = useState<MobilityWorkTask[]>([])
   const seenTaskIds = useRef<Set<string>>(new Set())
   const hasInitializedTasks = useRef(false)
@@ -74,10 +91,21 @@ export default function DashboardPage() {
       })
       .slice(0, 12)
   }, [metrics.scheduledToday])
-  const maxLateDays = useMemo(() => {
-    if (lateTasks.length === 0) return 1
-    return lateTasks.reduce((max, task) => Math.max(max, calculateDaysLate(task)), 1)
-  }, [lateTasks])
+  const plannedAndCompletedToday = metrics.plannedAndCompletedToday.length
+
+  useEffect(() => {
+    if (data?.tasks) {
+      setLastUpdatedAt(new Date())
+    }
+  }, [data])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRelativeNow(Date.now())
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     if (!tasks.length) return
@@ -118,14 +146,9 @@ export default function DashboardPage() {
     return () => clearTimeout(timeout)
   }, [taskNotifications])
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true)
-    await mutate()
-    setIsRefreshing(false)
-  }
-
   const activeNotification = taskNotifications[0]
   const activeNotificationCreatedAt = activeNotification ? getCreatedAt(activeNotification) : undefined
+  const lastUpdatedLabel = formatTimeSince(lastUpdatedAt, relativeNow)
 
   if (error) {
     return (
@@ -141,9 +164,9 @@ export default function DashboardPage() {
 
   const kpiItems = [
     {
-      label: "Tâches en retard",
-      value: metrics.lateTasks.length,
-      helper: "À traiter",
+      label: "Nouvelles tâches aujourd'hui",
+      value: metrics.createdToday.length,
+      helper: "Créées",
     },
     {
       label: "Tâches prévues aujourd'hui",
@@ -151,14 +174,14 @@ export default function DashboardPage() {
       helper: "Planifiées",
     },
     {
-      label: "Tâches complétées aujourd'hui",
-      value: metrics.completedToday.length,
+      label: "Planifiées & réalisées aujourd'hui",
+      value: plannedAndCompletedToday,
       helper: "Clôturées",
     },
     {
-      label: "Nouvelles tâches aujourd'hui",
-      value: metrics.createdToday.length,
-      helper: "Reçues",
+      label: "Tâches en retard",
+      value: metrics.lateTasks.length,
+      helper: "À traiter",
     },
   ]
 
@@ -191,15 +214,11 @@ export default function DashboardPage() {
             <h1 className="text-4xl font-semibold leading-tight text-[#2C7AF2]">Tableau de pilotage</h1>
             <p className="text-sm text-[#4D5870]/70">Vue synthétique des interventions Mobility Work</p>
           </div>
-          <Button
-            onClick={handleRefresh}
-            disabled={isRefreshing || isLoading}
-            variant="outline"
-            className="border-[#2C7AF2]/40 bg-white text-[#2C7AF2] hover:bg-[#EEF7FF]"
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-            Actualiser
-          </Button>
+          <div className="rounded-2xl border border-white/60 bg-white/70 px-5 py-3 text-sm text-[#4D5870]/80 shadow">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#4D5870]/60">Synchronisation</p>
+            <p className="text-base font-semibold text-[#2C7AF2]">{lastUpdatedLabel}</p>
+            <p className="text-xs text-[#4D5870]/60">Rafraîchi automatiquement toutes les 30 s</p>
+          </div>
         </header>
 
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -214,66 +233,7 @@ export default function DashboardPage() {
           ))}
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-3">
-          <Card className="border-[#DDE7F0] bg-white text-[#4D5870] lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-2xl font-semibold">Tâches en retard</CardTitle>
-              <p className="text-sm text-[#4D5870]/70">
-                Planifiées mais non réalisées. Visualisez le niveau de retard par intensité de couleur.
-              </p>
-            </CardHeader>
-            <CardContent className="px-0">
-              {lateTasks.length === 0 ? (
-                <div className="px-6 pb-6 text-center text-sm text-[#4D5870]/70">Aucune tâche en retard 🎉</div>
-              ) : (
-                <div className="overflow-hidden">
-                  <div className="hidden grid-cols-[1.1fr_1.5fr_0.8fr_0.8fr_0.9fr_0.7fr] gap-3 px-6 pb-3 text-xs uppercase tracking-wide text-[#4D5870]/60 lg:grid">
-                    <span>Équipement</span>
-                    <span>Description</span>
-                    <span>Date planifiée</span>
-                    <span className="text-center">Retard</span>
-                    <span>Assigné à</span>
-                    <span>État</span>
-                  </div>
-                  <div className="divide-y divide-[#EEF2FB]">
-                    {lateTasks.map((task) => {
-                      const daysLate = calculateDaysLate(task)
-                      const scheduledDate = getScheduledAt(task)
-                      const delayPercent = Math.max((daysLate / maxLateDays) * 100, 8)
-
-                      return (
-                        <div
-                          key={task.id}
-                          className="grid grid-cols-1 gap-4 px-6 py-4 text-sm text-[#4D5870] lg:grid-cols-[1.1fr_1.5fr_0.8fr_0.8fr_0.9fr_0.7fr]"
-                        >
-                          <span className="font-semibold text-[#2C7AF2]">{task.equipmentName || task.equipment || "-"}</span>
-                          <span className="text-[#4D5870]/80">{truncate(task.description)}</span>
-                          <span className="text-[#4D5870]/80">{formatDate(scheduledDate)}</span>
-                          <div className="space-y-2 text-center" title={`Planifiée le ${formatDate(scheduledDate)} à ${formatTime(scheduledDate)} • ${daysLate} jours de retard`}>
-                            <span className="font-semibold text-[#FF9D9D]">{daysLate} j</span>
-                            <div className="rounded-full bg-[#FFCECE]/60 p-1">
-                              <div
-                                className="h-2 rounded-full bg-gradient-to-r from-[#FFCECE] via-[#FF9D9D] to-[#FF946A]"
-                                style={{ width: `${delayPercent}%` }}
-                                aria-label={`${daysLate} jours de retard`}
-                              />
-                            </div>
-                          </div>
-                          <span>{task.assigneeName || "Non assignée"}</span>
-                          <span>
-                            <span className="rounded-full bg-[#F7F8FA] px-3 py-1 text-xs font-semibold uppercase text-[#4D5870]">
-                              {stateLabels[resolveTaskState(task)] || "Autre"}
-                            </span>
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <div className="flex flex-col gap-6">
             <Card className="border-[#DDE7F0] bg-white text-[#4D5870]">
               <CardHeader>
@@ -355,6 +315,57 @@ export default function DashboardPage() {
               </Card>
             )}
           </div>
+          <Card className="border-[#DDE7F0] bg-white text-[#4D5870]">
+            <CardHeader>
+              <CardTitle className="text-2xl font-semibold">Tâches en retard</CardTitle>
+              <p className="text-sm text-[#4D5870]/70">
+                Planifiées mais non réalisées. Suivez le nombre de jours de retard accumulés.
+              </p>
+            </CardHeader>
+            <CardContent className="px-0">
+              {lateTasks.length === 0 ? (
+                <div className="px-6 pb-6 text-center text-sm text-[#4D5870]/70">Aucune tâche en retard 🎉</div>
+              ) : (
+                <div className="overflow-hidden">
+                  <div className="hidden grid-cols-[1.1fr_1.5fr_0.8fr_0.8fr_0.9fr_0.7fr] gap-3 px-6 pb-3 text-xs uppercase tracking-wide text-[#4D5870]/60 lg:grid">
+                    <span>Équipement</span>
+                    <span>Description</span>
+                    <span>Date planifiée</span>
+                    <span className="text-center">Retard</span>
+                    <span>Assigné à</span>
+                    <span>État</span>
+                  </div>
+                  <div className="divide-y divide-[#EEF2FB]">
+                    {lateTasks.map((task) => {
+                      const daysLate = calculateDaysLate(task)
+                      const scheduledDate = getScheduledAt(task)
+
+                      return (
+                        <div
+                          key={task.id}
+                          className="grid grid-cols-1 gap-4 px-6 py-4 text-sm text-[#4D5870] lg:grid-cols-[1.1fr_1.5fr_0.8fr_0.8fr_0.9fr_0.7fr]"
+                        >
+                          <span className="font-semibold text-[#2C7AF2]">{task.equipmentName || task.equipment || "-"}</span>
+                          <span className="text-[#4D5870]/80">{truncate(task.description)}</span>
+                          <span className="text-[#4D5870]/80">{formatDate(scheduledDate)}</span>
+                          <div className="flex flex-col items-center justify-center gap-1 text-center" title={`Planifiée le ${formatDate(scheduledDate)} à ${formatTime(scheduledDate)} • ${daysLate} jours de retard`}>
+                            <span className="text-xs uppercase tracking-wide text-[#4D5870]/60">Jours</span>
+                            <span className="text-2xl font-bold text-[#FF9D9D]">{daysLate}</span>
+                          </div>
+                          <span>{task.assigneeName || "Non assignée"}</span>
+                          <span>
+                            <span className="rounded-full bg-[#F7F8FA] px-3 py-1 text-xs font-semibold uppercase text-[#4D5870]">
+                              {stateLabels[resolveTaskState(task)] || "Autre"}
+                            </span>
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </section>
       </div>
     </div>

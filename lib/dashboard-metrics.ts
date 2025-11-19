@@ -84,12 +84,23 @@ export const getOngoingTasks = (tasks: MobilityWorkTask[]) => {
   return tasks.filter((task) => resolveTaskState(task) === "ongoing")
 }
 
+export const getTasksPlannedAndCompletedToday = (tasks: MobilityWorkTask[]) => {
+  const { start, end } = getTodayRange()
+  return tasks.filter((task) => {
+    const scheduled = parseDate(getTaskDate(task, "scheduledAt"))
+    const completed = parseDate(getTaskDate(task, "completedAt"))
+    if (!scheduled || !completed) return false
+    return isWithinRange(scheduled, start, end) && isWithinRange(completed, start, end)
+  })
+}
+
 export const buildDashboardMetrics = (tasks: MobilityWorkTask[]) => {
   const lateTasks = getLateTasks(tasks)
   const scheduledToday = getTasksScheduledToday(tasks)
   const completedToday = getTasksCompletedToday(tasks)
   const createdToday = getTasksCreatedToday(tasks)
   const ongoingTasks = getOngoingTasks(tasks)
+  const plannedAndCompletedToday = getTasksPlannedAndCompletedToday(tasks)
 
   return {
     lateTasks,
@@ -97,6 +108,7 @@ export const buildDashboardMetrics = (tasks: MobilityWorkTask[]) => {
     completedToday,
     createdToday,
     ongoingTasks,
+    plannedAndCompletedToday,
   }
 }
 
