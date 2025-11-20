@@ -57,9 +57,9 @@ export function NewTaskNotification({ task, onDismiss }: NewTaskNotificationProp
     setTimeout(onDismiss, 300) // Wait for animation to complete
   }
 
-  // Auto-dismiss after 10 seconds
+  // Auto-dismiss after 15 seconds
   useEffect(() => {
-    const timer = setTimeout(handleDismiss, 10000)
+    const timer = setTimeout(handleDismiss, 15000)
     return () => clearTimeout(timer)
   }, [])
 

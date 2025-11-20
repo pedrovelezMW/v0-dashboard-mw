@@ -32,32 +32,190 @@ const fetcher = async ([url, apiKey]: [string, string]) => {
   return response.json()
 }
 
-const formatTimeSince = (date: Date | null, now: number) => {
-  if (!date) return "Synchronisation en cours…"
+type Language = "fr" | "en"
+
+const translations = {
+  fr: {
+    heroBadge: "🔧 FULL REWRITE — SHOPFLOOR VISUAL MANAGEMENT STYLE",
+    apiKeyTitle: "🔐 API KEY",
+    apiKeySubtitle: "Configurer la connexion Mobility Work",
+    apiKeyHelper: "Saisissez votre clé API pour activer la synchronisation des interventions.",
+    apiKeyPlaceholder: "Votre clé API",
+    apiKeyPrimary: "Activer la synchronisation",
+    apiKeyReset: "Réinitialiser",
+    mainHeaderBadge: "🏭 MAIN HEADER",
+    mainHeaderTitle: "Shopfloor Visual Management",
+    mainHeaderBody: "Pilotage en temps réel des interventions issues de Mobility Work.",
+    syncBadge: "🔄 SYNCHRONISATION",
+    syncTitle: "État de synchronisation",
+    syncLastUpdate: "Dernière mise à jour :",
+    syncAutoRefresh: "Actualisation automatique toutes les 30 secondes.",
+    kpiBadge: "📊 DAILY KPIs",
+    sectionsBadge: "🗂️ SECTIONS",
+    kpiCreatedLabel: "Tâches créées aujourd'hui",
+    kpiCreatedHelper: "Nouvelles interventions",
+    kpiScheduledLabel: "Tâches planifiées aujourd'hui",
+    kpiScheduledHelper: "Programmées pour le shift",
+    kpiDoneLabel: "Tâches réalisées aujourd'hui",
+    kpiDoneHelper: "Clôturées",
+    kpiLateLabel: "Interventions en retard",
+    kpiLateHelper: "À traiter en priorité",
+    todaysInterventions: "Interventions du jour",
+    todaysInterventionsHelper: "Tâches planifiées ou en cours pour le shift actuel.",
+    todaysInterventionsEmpty: "Aucune intervention prévue aujourd'hui.",
+    newInterventions: "Nouvelles interventions",
+    newInterventionsHelper: "Tâches enregistrées aujourd'hui.",
+    newInterventionsEmpty: "Aucune nouvelle intervention pour le moment.",
+    ongoingTasksTitle: "Tâches en cours",
+    ongoingTasksHelper: "Suivi rapide des interventions démarrées",
+    startedLabel: "Démarrée :",
+    lateTitle: "Retards d’intervention",
+    lateHelper: "Tâches programmées non réalisées. Suivi des retards accumulés.",
+    lateEmpty: "Aucun retard à signaler 🎉",
+    tableEquipment: "Équipement",
+    tableDescription: "Description",
+    tablePlannedDate: "Date planifiée",
+    tableDelay: "Retard",
+    tableAssignee: "Assigné à",
+    tableStatus: "État",
+    daysLabel: "Jours",
+    unassigned: "Non assignée",
+    defaultEquipment: "Équipement",
+    statePlanned: "Planifiée",
+    stateOngoing: "En cours",
+    stateCompleted: "Terminée",
+    stateCanceled: "Annulée",
+    statePending: "À traiter",
+    stateOther: "Autre",
+    newTaskLabel: "Nouvelle tâche",
+    createdOn: "Créée le",
+    assignedTo: "Assignée à :",
+    languageToggle: "Langue",
+    syncInProgress: "Synchronisation en cours…",
+    secondsAgo: "il y a quelques secondes",
+    secondsAgoExact: (value: number) => `il y a ${value} secondes`,
+    minutesAgo: (value: number) => `il y a ${value} minutes`,
+    hoursAgo: (value: number) => `il y a ${value} heures`,
+    daysAgo: (value: number) => `il y a ${value} jours`,
+    atLabel: "à",
+    plannedOn: "Planifiée le",
+    lateSuffix: "de retard",
+  },
+  en: {
+    heroBadge: "🔧 FULL REWRITE — SHOPFLOOR VISUAL MANAGEMENT STYLE",
+    apiKeyTitle: "🔐 API KEY",
+    apiKeySubtitle: "Set up Mobility Work connection",
+    apiKeyHelper: "Enter your API key to enable intervention sync.",
+    apiKeyPlaceholder: "Your API key",
+    apiKeyPrimary: "Enable sync",
+    apiKeyReset: "Reset",
+    mainHeaderBadge: "🏭 MAIN HEADER",
+    mainHeaderTitle: "Shopfloor Visual Management",
+    mainHeaderBody: "Real-time steering of interventions from Mobility Work.",
+    syncBadge: "🔄 SYNCHRONISATION",
+    syncTitle: "Sync status",
+    syncLastUpdate: "Last update:",
+    syncAutoRefresh: "Auto-refresh every 30 seconds.",
+    kpiBadge: "📊 DAILY KPIs",
+    sectionsBadge: "🗂️ SECTIONS",
+    kpiCreatedLabel: "Tasks created today",
+    kpiCreatedHelper: "New interventions",
+    kpiScheduledLabel: "Tasks scheduled today",
+    kpiScheduledHelper: "Planned for the shift",
+    kpiDoneLabel: "Tasks completed today",
+    kpiDoneHelper: "Closed",
+    kpiLateLabel: "Late interventions",
+    kpiLateHelper: "Priority to handle",
+    todaysInterventions: "Today's interventions",
+    todaysInterventionsHelper: "Tasks scheduled or in progress for the current shift.",
+    todaysInterventionsEmpty: "No intervention planned today.",
+    newInterventions: "New interventions",
+    newInterventionsHelper: "Tasks recorded today.",
+    newInterventionsEmpty: "No new intervention for now.",
+    ongoingTasksTitle: "Ongoing tasks",
+    ongoingTasksHelper: "Quick follow-up of started interventions",
+    startedLabel: "Started:",
+    lateTitle: "Delayed interventions",
+    lateHelper: "Scheduled tasks not yet done. Tracking accumulated delays.",
+    lateEmpty: "No delays to report 🎉",
+    tableEquipment: "Equipment",
+    tableDescription: "Description",
+    tablePlannedDate: "Planned date",
+    tableDelay: "Delay",
+    tableAssignee: "Assigned to",
+    tableStatus: "Status",
+    daysLabel: "Days",
+    unassigned: "Unassigned",
+    defaultEquipment: "Equipment",
+    statePlanned: "Planned",
+    stateOngoing: "Ongoing",
+    stateCompleted: "Completed",
+    stateCanceled: "Canceled",
+    statePending: "To process",
+    stateOther: "Other",
+    newTaskLabel: "New task",
+    createdOn: "Created on",
+    assignedTo: "Assigned to:",
+    languageToggle: "Language",
+    syncInProgress: "Sync in progress…",
+    secondsAgo: "a few seconds ago",
+    secondsAgoExact: (value: number) => `${value} seconds ago`,
+    minutesAgo: (value: number) => `${value} minutes ago`,
+    hoursAgo: (value: number) => `${value} hours ago`,
+    daysAgo: (value: number) => `${value} days ago`,
+    atLabel: "at",
+    plannedOn: "Planned on",
+    lateSuffix: "late",
+  },
+} as const
+
+const formatTimeSince = (date: Date | null, now: number, language: Language) => {
+  const t = translations[language]
+
+  if (!date) return t.syncInProgress
 
   const diffSeconds = Math.max(0, Math.floor((now - date.getTime()) / 1000))
 
-  if (diffSeconds < 5) return "Actualisé à l'instant"
-  if (diffSeconds < 60) return `Actualisé il y a ${diffSeconds}s`
+  if (diffSeconds < 5) return t.secondsAgo
+  if (diffSeconds < 60) return typeof t.secondsAgoExact === "function" ? t.secondsAgoExact(diffSeconds) : t.secondsAgo
 
   const diffMinutes = Math.floor(diffSeconds / 60)
-  if (diffMinutes < 60) return `Actualisé il y a ${diffMinutes} min`
+  if (diffMinutes < 60 && typeof t.minutesAgo === "function") return t.minutesAgo(diffMinutes)
 
   const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `Actualisé il y a ${diffHours} h`
+  if (diffHours < 24 && typeof t.hoursAgo === "function") return t.hoursAgo(diffHours)
 
   const diffDays = Math.floor(diffHours / 24)
-  return `Actualisé il y a ${diffDays} j`
+  if (typeof t.daysAgo === "function") return t.daysAgo(diffDays)
+
+  return t.syncInProgress
 }
 
-const stateLabels: Record<string, string> = {
-  planned: "Planifiée",
-  scheduled: "Planifiée",
-  ongoing: "En cours",
-  "in-progress": "En cours",
-  completed: "Terminée",
-  canceled: "Annulée",
-  pending: "À traiter",
+const stateLabels: Record<Language, Record<string, string>> = {
+  fr: {
+    planned: translations.fr.statePlanned,
+    scheduled: translations.fr.statePlanned,
+    ongoing: translations.fr.stateOngoing,
+    "in-progress": translations.fr.stateOngoing,
+    completed: translations.fr.stateCompleted,
+    canceled: translations.fr.stateCanceled,
+    pending: translations.fr.statePending,
+  },
+  en: {
+    planned: translations.en.statePlanned,
+    scheduled: translations.en.statePlanned,
+    ongoing: translations.en.stateOngoing,
+    "in-progress": translations.en.stateOngoing,
+    completed: translations.en.stateCompleted,
+    canceled: translations.en.stateCanceled,
+    pending: translations.en.statePending,
+  },
+}
+
+const formatDelayTooltip = (dateLabel: string, timeLabel: string, daysLate: number, language: Language) => {
+  const t = translations[language]
+  const delayPart = `${daysLate} ${t.daysLabel.toLowerCase()} ${language === "fr" ? t.lateSuffix : t.lateSuffix}`
+  return `${t.plannedOn} ${dateLabel} ${t.atLabel} ${timeLabel} • ${delayPart}`
 }
 
 const truncate = (text: string, max = 60) => {
@@ -75,6 +233,7 @@ const getScheduledAt = (task: MobilityWorkTask) =>
   task.startDateTime
 
 export default function DashboardPage() {
+  const [language, setLanguage] = useState<Language>("fr")
   const [apiKey, setApiKey] = useState("")
   const [apiKeyInput, setApiKeyInput] = useState("")
   const [isEditingApiKey, setIsEditingApiKey] = useState(false)
@@ -87,12 +246,17 @@ export default function DashboardPage() {
   const [taskNotifications, setTaskNotifications] = useState<MobilityWorkTask[]>([])
   const seenTaskIds = useRef<Set<string>>(new Set())
   const hasInitializedTasks = useRef(false)
+  const locale = language === "fr" ? "fr-FR" : "en-US"
+  const t = translations[language]
 
   useEffect(() => {
     const storedKey = localStorage.getItem("mobilityWorkApiKey") || ""
     setApiKey(storedKey)
     setApiKeyInput("")
     setHasLoadedStoredKey(true)
+
+    const storedLanguage = (localStorage.getItem("dashboardLanguage") as Language | null) || "fr"
+    setLanguage(storedLanguage)
   }, [])
 
   useEffect(() => {
@@ -104,6 +268,10 @@ export default function DashboardPage() {
       localStorage.removeItem("mobilityWorkApiKey")
     }
   }, [apiKey, hasLoadedStoredKey])
+
+  useEffect(() => {
+    localStorage.setItem("dashboardLanguage", language)
+  }, [language])
 
   const tasks: MobilityWorkTask[] = data?.tasks || []
 
@@ -165,6 +333,8 @@ export default function DashboardPage() {
 
     const seen = seenTaskIds.current
     const newlyCreated: MobilityWorkTask[] = []
+    const now = Date.now()
+    const fiveMinutesAgo = now - 5 * 60 * 1000
 
     tasks.forEach((task) => {
       const rawId =
@@ -174,7 +344,13 @@ export default function DashboardPage() {
       if (!seen.has(taskId)) {
         seen.add(taskId)
         if (hasInitializedTasks.current) {
-          newlyCreated.push(task)
+          const createdAt = getCreatedAt(task)
+          const createdAtDate = createdAt ? new Date(createdAt) : null
+          const createdAtTime = createdAtDate?.getTime()
+
+          if (createdAtTime && !Number.isNaN(createdAtTime) && createdAtTime >= fiveMinutesAgo) {
+            newlyCreated.push(task)
+          }
         }
       }
     })
@@ -201,32 +377,16 @@ export default function DashboardPage() {
 
   const activeNotification = taskNotifications[0]
   const activeNotificationCreatedAt = activeNotification ? getCreatedAt(activeNotification) : undefined
-  const lastUpdatedLabel = formatTimeSince(lastUpdatedAt, relativeNow)
+  const lastUpdatedLabel = formatTimeSince(lastUpdatedAt, relativeNow, language)
 
   const hasApiKey = Boolean(apiKey)
   const errorMessage = error instanceof Error ? error.message : null
 
   const kpiItems = [
-    {
-      label: "Nouvelles tâches aujourd'hui",
-      value: metrics.createdToday.length,
-      helper: "Créées",
-    },
-    {
-      label: "Tâches prévues aujourd'hui",
-      value: metrics.scheduledToday.length,
-      helper: "Planifiées",
-    },
-    {
-      label: "Planifiées & réalisées aujourd'hui",
-      value: plannedAndCompletedToday,
-      helper: "Clôturées",
-    },
-    {
-      label: "Tâches en retard",
-      value: metrics.lateTasks.length,
-      helper: "À traiter",
-    },
+    { label: t.kpiCreatedLabel, value: metrics.createdToday.length, helper: t.kpiCreatedHelper },
+    { label: t.kpiScheduledLabel, value: metrics.scheduledToday.length, helper: t.kpiScheduledHelper },
+    { label: t.kpiDoneLabel, value: plannedAndCompletedToday, helper: t.kpiDoneHelper },
+    { label: t.kpiLateLabel, value: metrics.lateTasks.length, helper: t.kpiLateHelper },
   ]
 
   const maskedApiKeyDisplay = hasApiKey && !isEditingApiKey ? "********" : apiKeyInput
@@ -234,31 +394,57 @@ export default function DashboardPage() {
   return (
     <div className="relative min-h-screen bg-[#EEF7FF] px-4 py-8 text-[#4D5870]">
       {activeNotification && (
-        <div className="pointer-events-none fixed inset-x-0 top-8 z-50 flex justify-center px-4">
-          <div className="w-full max-w-3xl rounded-3xl border-4 border-[#FF9D9D] bg-[#FFCECE] p-6 text-[#4D5870] shadow-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.6em] text-[#4D5870]/70">Nouvelle tâche</p>
-            <h2 className="mt-3 text-3xl font-black leading-tight text-[#2C7AF2]">
-              {activeNotification.equipmentName || activeNotification.equipment || "Équipement"}
+        <div className="pointer-events-none fixed inset-x-0 top-6 z-50 flex justify-center px-4">
+          <div
+            className="w-full max-w-5xl scale-[1.2] rounded-[28px] border-[6px] border-[#FF9D9D] bg-[#FFCECE] p-10 text-[#4D5870] shadow-2xl"
+            style={{ transformOrigin: "top center" }}
+          >
+            <p className="text-sm font-semibold uppercase tracking-[0.6em] text-[#4D5870]/70">{t.newTaskLabel}</p>
+            <h2 className="mt-4 text-5xl font-black leading-tight text-[#2C7AF2]">
+              {activeNotification.equipmentName || activeNotification.equipment || t.defaultEquipment}
             </h2>
-            <p className="mt-2 text-base font-medium text-[#4D5870]">
-              {truncate(activeNotification.description, 120)}
+            <p className="mt-4 text-2xl font-semibold text-[#4D5870]">
+              {truncate(activeNotification.description, 180)}
             </p>
-            <div className="mt-4 flex flex-col gap-2 text-sm font-semibold sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-6 flex flex-col gap-3 text-lg font-semibold sm:flex-row sm:items-center sm:justify-between">
               <span>
-                Créée le {activeNotificationCreatedAt ? formatDate(activeNotificationCreatedAt) : "-"} à{" "}
+                {t.createdOn} {activeNotificationCreatedAt ? formatDate(activeNotificationCreatedAt) : "-"} {t.atLabel}{" "}
                 {activeNotificationCreatedAt ? formatTime(activeNotificationCreatedAt) : "-"}
               </span>
-              <span>Assignée à : {activeNotification.assigneeName || "Non assignée"}</span>
+              <span>
+                {t.assignedTo} {activeNotification.assigneeName || t.unassigned}
+              </span>
             </div>
           </div>
         </div>
       )}
       <div className="mx-auto max-w-7xl space-y-8">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#4D5870]/60">{t.heroBadge}</p>
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#4D5870]">
+            <span className="uppercase tracking-[0.25em] text-[#4D5870]/70">{t.languageToggle}</span>
+            <div className="inline-flex overflow-hidden rounded-lg border border-[#DDE7F0] bg-white shadow-sm">
+              {(["fr", "en"] as Language[]).map((lang) => (
+                <button
+                  key={lang}
+                  className={`px-3 py-2 text-xs font-semibold transition ${
+                    language === lang ? "bg-[#2C7AF2] text-white" : "text-[#4D5870] hover:bg-[#EEF7FF]"
+                  }`}
+                  onClick={() => setLanguage(lang)}
+                  type="button"
+                >
+                  {lang.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
         <Card className="border-[#DDE7F0] bg-white text-[#4D5870]">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#4D5870]/60">Clé API</p>
-              <p className="text-sm text-[#4D5870]/70">Ajoutez votre clé Mobility Work pour synchroniser les tâches.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#4D5870]/60">{t.apiKeyTitle}</p>
+              <p className="text-sm font-semibold text-[#4D5870]">{t.apiKeySubtitle}</p>
+              <p className="text-sm text-[#4D5870]/70">{t.apiKeyHelper}</p>
               {errorMessage && (
                 <div className="inline-flex items-center gap-2 rounded-lg bg-[#FFCECE] px-3 py-2 text-xs font-semibold text-[#4D5870]">
                   <AlertCircle className="h-4 w-4 text-[#FF9D9D]" />
@@ -270,7 +456,7 @@ export default function DashboardPage() {
               <input
                 type="password"
                 className="w-full min-w-[240px] rounded-lg border border-[#DDE7F0] bg-[#F7F8FA] px-3 py-2 text-sm text-[#4D5870] shadow-inner focus:border-[#2C7AF2] focus:outline-none"
-                placeholder={hasApiKey ? "Clé enregistrée" : "Collez votre clé API"}
+                placeholder={t.apiKeyPlaceholder}
                 value={maskedApiKeyDisplay}
                 onFocus={() => {
                   if (!isEditingApiKey) {
@@ -291,10 +477,12 @@ export default function DashboardPage() {
                 autoComplete="off"
               />
               <div className="flex justify-end gap-2 sm:justify-start">
-                <Button onClick={handleSaveApiKey} disabled={!apiKeyInput.trim()}>Enregistrer</Button>
+                <Button onClick={handleSaveApiKey} disabled={!apiKeyInput.trim()}>
+                  {t.apiKeyPrimary}
+                </Button>
                 {hasApiKey && (
                   <Button variant="ghost" onClick={handleClearApiKey} className="text-[#4D5870]">
-                    Réinitialiser
+                    {t.apiKeyReset}
                   </Button>
                 )}
               </div>
@@ -303,39 +491,42 @@ export default function DashboardPage() {
         </Card>
         <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#4D5870]/60">Shopfloor</p>
-            <h1 className="text-4xl font-semibold leading-tight text-[#2C7AF2]">Tableau de pilotage</h1>
-            <p className="text-sm text-[#4D5870]/70">Vue synthétique des interventions Mobility Work</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#4D5870]/60">{t.mainHeaderBadge}</p>
+            <h1 className="text-4xl font-semibold leading-tight text-[#2C7AF2]">{t.mainHeaderTitle}</h1>
+            <p className="text-sm text-[#4D5870]/70">{t.mainHeaderBody}</p>
           </div>
           <div className="rounded-2xl border border-white/60 bg-white/70 px-5 py-3 text-sm text-[#4D5870]/80 shadow">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#4D5870]/60">Synchronisation</p>
-            <p className="text-base font-semibold text-[#2C7AF2]">{lastUpdatedLabel}</p>
-            <p className="text-xs text-[#4D5870]/60">Rafraîchi automatiquement toutes les 30 s</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#4D5870]/60">{t.syncBadge}</p>
+            <p className="text-base font-semibold text-[#2C7AF2]">{t.syncTitle}</p>
+            <p className="text-sm text-[#4D5870]">{t.syncLastUpdate} {lastUpdatedLabel}</p>
+            <p className="text-xs text-[#4D5870]/60">{t.syncAutoRefresh}</p>
           </div>
         </header>
 
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#4D5870]/60">{t.kpiBadge}</p>
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {kpiItems.map((item) => (
             <Card key={item.label} className="border-[#DDE7F0] bg-white text-[#4D5870]">
               <CardHeader className="space-y-2">
                 <CardTitle className="text-sm uppercase tracking-wide text-[#4D5870]/70">{item.label}</CardTitle>
-                <p className="text-5xl font-bold tracking-tight text-[#2C7AF2]">{item.value.toLocaleString("fr-FR")}</p>
+                <p className="text-5xl font-bold tracking-tight text-[#2C7AF2]">{item.value.toLocaleString(locale)}</p>
                 <p className="text-xs text-[#4D5870]/60">{item.helper}</p>
               </CardHeader>
             </Card>
           ))}
         </section>
 
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#4D5870]/60">{t.sectionsBadge}</p>
         <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <div className="flex flex-col gap-6">
             <Card className="border-[#DDE7F0] bg-white text-[#4D5870]">
               <CardHeader>
-                <CardTitle className="text-2xl font-semibold">Tâches du jour</CardTitle>
-                <p className="text-sm text-[#4D5870]/70">Tâches planifiées ou en cours pour la plage « shift » du jour.</p>
+                <CardTitle className="text-2xl font-semibold">{t.todaysInterventions}</CardTitle>
+                <p className="text-sm text-[#4D5870]/70">{t.todaysInterventionsHelper}</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 {todaysTasks.length === 0 ? (
-                  <p className="text-center text-sm text-[#4D5870]/70">Aucune tâche prévue aujourd'hui.</p>
+                  <p className="text-center text-sm text-[#4D5870]/70">{t.todaysInterventionsEmpty}</p>
                 ) : (
                   todaysTasks.map((task) => {
                     const scheduledDate = getScheduledAt(task)
@@ -346,14 +537,14 @@ export default function DashboardPage() {
                           <span>{formatTime(scheduledDate)}</span>
                         </div>
                         <p className="mt-2 text-base font-semibold text-[#2C7AF2]">
-                          {task.equipmentName || task.equipment || "Équipement"}
+                          {task.equipmentName || task.equipment || t.defaultEquipment}
                         </p>
                         <p className="text-sm text-[#4D5870]">{truncate(task.description, 80)}</p>
                         <div className="mt-3 flex items-center justify-between text-xs">
                           <span className="inline-flex rounded-full bg-[#DDF6E6] px-3 py-1 font-semibold uppercase tracking-wide text-[#00DB2B]">
-                            {stateLabels[resolveTaskState(task)] || "Autre"}
+                            {stateLabels[language][resolveTaskState(task)] || t.stateOther}
                           </span>
-                          <span className="font-semibold text-[#57D2A5]">{task.assigneeName || "Non assignée"}</span>
+                          <span className="font-semibold text-[#57D2A5]">{task.assigneeName || t.unassigned}</span>
                         </div>
                       </div>
                     )
@@ -364,12 +555,12 @@ export default function DashboardPage() {
 
             <Card className="border-[#DDE7F0] bg-white text-[#4D5870]">
               <CardHeader>
-                <CardTitle className="text-2xl font-semibold">Nouvelles tâches</CardTitle>
-                <p className="text-sm text-[#4D5870]/70">Créées aujourd'hui</p>
+                <CardTitle className="text-2xl font-semibold">{t.newInterventions}</CardTitle>
+                <p className="text-sm text-[#4D5870]/70">{t.newInterventionsHelper}</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 {newTasksToday.length === 0 ? (
-                  <p className="text-center text-sm text-[#4D5870]/70">Aucune nouvelle tâche aujourd'hui.</p>
+                  <p className="text-center text-sm text-[#4D5870]/70">{t.newInterventionsEmpty}</p>
                 ) : (
                   newTasksToday.map((task) => (
                     <div key={task.id} className="rounded-xl border border-[#EEF2FB] bg-[#F7F8FA] p-4">
@@ -378,11 +569,11 @@ export default function DashboardPage() {
                         <span>{formatTime(getCreatedAt(task))}</span>
                       </div>
                       <p className="mt-2 text-lg font-semibold text-[#2C7AF2]">
-                        {task.equipmentName || task.equipment || "Équipement"}
+                        {task.equipmentName || task.equipment || t.defaultEquipment}
                       </p>
                       <p className="text-sm text-[#4D5870]">{truncate(task.description, 80)}</p>
                       <p className="mt-3 inline-flex rounded-full bg-[#DDF6E6] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#00DB2B]">
-                        {stateLabels[resolveTaskState(task)] || "Autre"}
+                        {stateLabels[language][resolveTaskState(task)] || t.stateOther}
                       </p>
                     </div>
                   ))
@@ -393,15 +584,17 @@ export default function DashboardPage() {
             {ongoingTasks.length > 0 && (
               <Card className="border-[#DDE7F0] bg-white text-[#4D5870]">
                 <CardHeader>
-                  <CardTitle className="text-xl font-semibold">Tâches en cours</CardTitle>
-                  <p className="text-sm text-[#4D5870]/70">Suivi rapide des interventions démarrées</p>
+                  <CardTitle className="text-xl font-semibold">{t.ongoingTasksTitle}</CardTitle>
+                  <p className="text-sm text-[#4D5870]/70">{t.ongoingTasksHelper}</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {ongoingTasks.map((task) => (
                     <div key={task.id} className="rounded-lg border border-[#EEF2FB] bg-[#F7F8FA] px-4 py-3">
                       <p className="text-base font-semibold text-[#2C7AF2]">{task.equipmentName || task.equipment || "-"}</p>
                       <p className="text-sm text-[#4D5870]/80">{truncate(task.description, 70)}</p>
-                      <p className="mt-2 text-xs text-[#4D5870]/70">Démarrée : {formatTime(task.startedAt || task.startDateTime)}</p>
+                      <p className="mt-2 text-xs text-[#4D5870]/70">
+                        {t.startedLabel} {formatTime(task.startedAt || task.startDateTime)}
+                      </p>
                     </div>
                   ))}
                 </CardContent>
@@ -410,23 +603,21 @@ export default function DashboardPage() {
           </div>
           <Card className="border-[#DDE7F0] bg-white text-[#4D5870]">
             <CardHeader>
-              <CardTitle className="text-2xl font-semibold">Tâches en retard</CardTitle>
-              <p className="text-sm text-[#4D5870]/70">
-                Planifiées mais non réalisées. Suivez le nombre de jours de retard accumulés.
-              </p>
+              <CardTitle className="text-2xl font-semibold">{t.lateTitle}</CardTitle>
+              <p className="text-sm text-[#4D5870]/70">{t.lateHelper}</p>
             </CardHeader>
             <CardContent className="px-0">
               {lateTasks.length === 0 ? (
-                <div className="px-6 pb-6 text-center text-sm text-[#4D5870]/70">Aucune tâche en retard 🎉</div>
+                <div className="px-6 pb-6 text-center text-sm text-[#4D5870]/70">{t.lateEmpty}</div>
               ) : (
                 <div className="overflow-hidden">
                   <div className="hidden grid-cols-[1.1fr_1.5fr_0.8fr_0.8fr_0.9fr_0.7fr] gap-3 px-6 pb-3 text-xs uppercase tracking-wide text-[#4D5870]/60 lg:grid">
-                    <span>Équipement</span>
-                    <span>Description</span>
-                    <span>Date planifiée</span>
-                    <span className="text-center">Retard</span>
-                    <span>Assigné à</span>
-                    <span>État</span>
+                    <span>{t.tableEquipment}</span>
+                    <span>{t.tableDescription}</span>
+                    <span>{t.tablePlannedDate}</span>
+                    <span className="text-center">{t.tableDelay}</span>
+                    <span>{t.tableAssignee}</span>
+                    <span>{t.tableStatus}</span>
                   </div>
                   <div className="divide-y divide-[#EEF2FB]">
                     {lateTasks.map((task) => {
@@ -441,14 +632,17 @@ export default function DashboardPage() {
                           <span className="font-semibold text-[#2C7AF2]">{task.equipmentName || task.equipment || "-"}</span>
                           <span className="text-[#4D5870]/80">{truncate(task.description)}</span>
                           <span className="text-[#4D5870]/80">{formatDate(scheduledDate)}</span>
-                          <div className="flex flex-col items-center justify-center gap-1 text-center" title={`Planifiée le ${formatDate(scheduledDate)} à ${formatTime(scheduledDate)} • ${daysLate} jours de retard`}>
-                            <span className="text-xs uppercase tracking-wide text-[#4D5870]/60">Jours</span>
+                          <div
+                            className="flex flex-col items-center justify-center gap-1 text-center"
+                            title={formatDelayTooltip(formatDate(scheduledDate), formatTime(scheduledDate), daysLate, language)}
+                          >
+                            <span className="text-xs uppercase tracking-wide text-[#4D5870]/60">{t.daysLabel}</span>
                             <span className="text-2xl font-bold text-[#FF9D9D]">{daysLate}</span>
                           </div>
-                          <span>{task.assigneeName || "Non assignée"}</span>
+                          <span>{task.assigneeName || t.unassigned}</span>
                           <span>
                             <span className="rounded-full bg-[#F7F8FA] px-3 py-1 text-xs font-semibold uppercase text-[#4D5870]">
-                              {stateLabels[resolveTaskState(task)] || "Autre"}
+                              {stateLabels[language][resolveTaskState(task)] || t.stateOther}
                             </span>
                           </span>
                         </div>
