@@ -1,14 +1,15 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { categorizeTasksStats } from "@/lib/task-utils"
 import type { MobilityWorkTask } from "@/types/task"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const apiKey = process.env.MOBILITY_WORK_API_KEY
+    const providedApiKey = request.headers.get("x-api-key")?.trim()
+    const apiKey = providedApiKey || process.env.MOBILITY_WORK_API_KEY
 
     if (!apiKey) {
       console.error("[v0] MOBILITY_WORK_API_KEY not configured")
-      return NextResponse.json({ error: "API key not configured" }, { status: 500 })
+      return NextResponse.json({ error: "API key not configured" }, { status: 401 })
     }
 
     const now = new Date()
