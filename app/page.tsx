@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react"
 import useSWR from "swr"
 import { AlertCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   buildDashboardMetrics,
@@ -13,7 +14,23 @@ import {
 } from "@/lib/dashboard-metrics"
 import type { MobilityWorkTask } from "@/types/task"
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = async ([url, apiKey]: [string, string]) => {
+  const response = await fetch(url, {
+    headers: {
+      "x-api-key": apiKey,
+    },
+  })
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null)
+    const message = payload?.error || `Erreur ${response.status}`
+    const error = new Error(message) as Error & { status?: number }
+    error.status = response.status
+    throw error
+  }
+
+  return response.json()
+}
 
 const formatTimeSince = (date: Date | null, now: number) => {
   if (!date) return "Synchronisation en cours…"
@@ -58,8 +75,12 @@ const getScheduledAt = (task: MobilityWorkTask) =>
   task.startDateTime
 
 export default function DashboardPage() {
-  const { data, error } = useSWR("/api/tasks", fetcher, {
-    refreshInterval: 30000,
+  const [apiKey, setApiKey] = useState("")
+  const [apiKeyInput, setApiKeyInput] = useState("")
+  const [isEditingApiKey, setIsEditingApiKey] = useState(false)
+  const [hasLoadedStoredKey, setHasLoadedStoredKey] = useState(false)
+  const { data, error } = useSWR(apiKey ? ["/api/tasks", apiKey] : null, fetcher, {
+    refreshInterval: apiKey ? 30000 : 0,
   })
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null)
   const [relativeNow, setRelativeNow] = useState(Date.now())
@@ -67,7 +88,39 @@ export default function DashboardPage() {
   const seenTaskIds = useRef<Set<string>>(new Set())
   const hasInitializedTasks = useRef(false)
 
+  useEffect(() => {
+    const storedKey = localStorage.getItem("mobilityWorkApiKey") || ""
+    setApiKey(storedKey)
+    setApiKeyInput("")
+    setHasLoadedStoredKey(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hasLoadedStoredKey) return
+
+    if (apiKey) {
+      localStorage.setItem("mobilityWorkApiKey", apiKey)
+    } else {
+      localStorage.removeItem("mobilityWorkApiKey")
+    }
+  }, [apiKey, hasLoadedStoredKey])
+
   const tasks: MobilityWorkTask[] = data?.tasks || []
+
+  const handleSaveApiKey = () => {
+    const trimmed = apiKeyInput.trim()
+    if (!trimmed) return
+
+    setApiKey(trimmed)
+    setApiKeyInput("")
+    setIsEditingApiKey(false)
+  }
+
+  const handleClearApiKey = () => {
+    setApiKey("")
+    setApiKeyInput("")
+    setIsEditingApiKey(false)
+  }
 
   const metrics = useMemo(() => buildDashboardMetrics(tasks), [tasks])
 
@@ -150,17 +203,8 @@ export default function DashboardPage() {
   const activeNotificationCreatedAt = activeNotification ? getCreatedAt(activeNotification) : undefined
   const lastUpdatedLabel = formatTimeSince(lastUpdatedAt, relativeNow)
 
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#EEF7FF] text-[#4D5870]">
-        <div className="text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-[#FF9D9D]" />
-          <h2 className="mt-4 text-xl font-semibold">Impossible de charger les tâches</h2>
-          <p className="mt-2 text-sm text-[#4D5870]/70">Veuillez réessayer ultérieurement.</p>
-        </div>
-      </div>
-    )
-  }
+  const hasApiKey = Boolean(apiKey)
+  const errorMessage = error instanceof Error ? error.message : null
 
   const kpiItems = [
     {
@@ -185,6 +229,8 @@ export default function DashboardPage() {
     },
   ]
 
+  const maskedApiKeyDisplay = hasApiKey && !isEditingApiKey ? "********" : apiKeyInput
+
   return (
     <div className="relative min-h-screen bg-[#EEF7FF] px-4 py-8 text-[#4D5870]">
       {activeNotification && (
@@ -208,6 +254,53 @@ export default function DashboardPage() {
         </div>
       )}
       <div className="mx-auto max-w-7xl space-y-8">
+        <Card className="border-[#DDE7F0] bg-white text-[#4D5870]">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#4D5870]/60">Clé API</p>
+              <p className="text-sm text-[#4D5870]/70">Ajoutez votre clé Mobility Work pour synchroniser les tâches.</p>
+              {errorMessage && (
+                <div className="inline-flex items-center gap-2 rounded-lg bg-[#FFCECE] px-3 py-2 text-xs font-semibold text-[#4D5870]">
+                  <AlertCircle className="h-4 w-4 text-[#FF9D9D]" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <input
+                type="password"
+                className="w-full min-w-[240px] rounded-lg border border-[#DDE7F0] bg-[#F7F8FA] px-3 py-2 text-sm text-[#4D5870] shadow-inner focus:border-[#2C7AF2] focus:outline-none"
+                placeholder={hasApiKey ? "Clé enregistrée" : "Collez votre clé API"}
+                value={maskedApiKeyDisplay}
+                onFocus={() => {
+                  if (!isEditingApiKey) {
+                    setIsEditingApiKey(true)
+                    setApiKeyInput("")
+                  }
+                }}
+                onChange={(event) => {
+                  setIsEditingApiKey(true)
+                  setApiKeyInput(event.target.value)
+                }}
+                onBlur={() => {
+                  if (!apiKeyInput.trim() && hasApiKey) {
+                    setIsEditingApiKey(false)
+                    setApiKeyInput("")
+                  }
+                }}
+                autoComplete="off"
+              />
+              <div className="flex justify-end gap-2 sm:justify-start">
+                <Button onClick={handleSaveApiKey} disabled={!apiKeyInput.trim()}>Enregistrer</Button>
+                {hasApiKey && (
+                  <Button variant="ghost" onClick={handleClearApiKey} className="text-[#4D5870]">
+                    Réinitialiser
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#4D5870]/60">Shopfloor</p>
