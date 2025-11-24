@@ -423,8 +423,9 @@ export default function DashboardPage() {
         </div>
       )}
       <div className="mx-auto max-w-7xl space-y-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/80 p-4 shadow">
             <div className="h-12 w-48 overflow-hidden rounded-xl bg-white/80 shadow-sm ring-1 ring-[#DDE7F0]/70">
               <Image
                 src="/Logo%20Mobility%20Work@2x%20(1).png"
@@ -436,27 +437,8 @@ export default function DashboardPage() {
               />
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#4D5870]">
-            <span className="uppercase tracking-[0.25em] text-[#4D5870]/70">{t.languageToggle}</span>
-            <div className="inline-flex overflow-hidden rounded-lg border border-[#DDE7F0] bg-white shadow-sm">
-              {(["fr", "en"] as Language[]).map((lang) => (
-                <button
-                  key={lang}
-                  className={`px-3 py-2 text-xs font-semibold transition ${
-                    language === lang ? "bg-[#2C7AF2] text-white" : "text-[#4D5870] hover:bg-[#EEF7FF]"
-                  }`}
-                  onClick={() => setLanguage(lang)}
-                  type="button"
-                >
-                  {lang.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <Card className="border-[#DDE7F0] bg-white text-[#4D5870]">
-          <CardContent className="flex flex-col gap-4 p-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rounded-2xl border border-white/60 bg-white/70 p-4 text-sm text-[#4D5870]/80 shadow">
+            <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#4D5870]/60">{t.apiKeyTitle}</p>
                 <p className="text-sm font-semibold text-[#4D5870]">{t.apiKeySubtitle}</p>
@@ -470,7 +452,7 @@ export default function DashboardPage() {
               </Button>
             </div>
             {showApiConfig && (
-              <div className="flex flex-col gap-3">
+              <div className="mt-3 flex flex-col gap-3">
                 <p className="text-sm text-[#4D5870]/70">{t.apiKeyHelper}</p>
                 {errorMessage && (
                   <div className="inline-flex items-center gap-2 rounded-lg bg-[#FFCECE] px-3 py-2 text-xs font-semibold text-[#4D5870]">
@@ -478,10 +460,10 @@ export default function DashboardPage() {
                     <span>{errorMessage}</span>
                   </div>
                 )}
-                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
                   <input
                     type="password"
-                    className="w-full min-w-[240px] rounded-lg border border-[#DDE7F0] bg-[#F7F8FA] px-3 py-2 text-sm text-[#4D5870] shadow-inner focus:border-[#2C7AF2] focus:outline-none"
+                    className="w-full rounded-lg border border-[#DDE7F0] bg-[#F7F8FA] px-3 py-2 text-sm text-[#4D5870] shadow-inner focus:border-[#2C7AF2] focus:outline-none"
                     placeholder={t.apiKeyPlaceholder}
                     value={maskedApiKeyDisplay}
                     onFocus={() => {
@@ -502,7 +484,7 @@ export default function DashboardPage() {
                     }}
                     autoComplete="off"
                   />
-                  <div className="flex justify-end gap-2 sm:justify-start">
+                  <div className="flex flex-wrap justify-end gap-2 sm:justify-start">
                     <Button onClick={handleSaveApiKey} disabled={!apiKeyInput.trim()}>
                       {t.apiKeyPrimary}
                     </Button>
@@ -515,25 +497,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
-        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 overflow-hidden rounded-xl bg-white/80 shadow-sm ring-1 ring-[#DDE7F0]/70">
-              <Image
-                src="/Logo%20Mobility%20Work@2x%20(1).png"
-                alt="Mobility Work logo"
-                width={64}
-                height={64}
-                className="h-full w-full object-contain"
-                priority
-              />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#4D5870]/60">{t.mainHeaderBadge}</p>
-              <h1 className="text-4xl font-semibold leading-tight text-[#2C7AF2]">{t.mainHeaderTitle}</h1>
-              <p className="text-sm text-[#4D5870]/70">{t.mainHeaderBody}</p>
-            </div>
           </div>
           <div className="rounded-2xl border border-white/60 bg-white/70 px-5 py-3 text-sm text-[#4D5870]/80 shadow">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#4D5870]/60">{t.syncBadge}</p>
@@ -541,6 +504,28 @@ export default function DashboardPage() {
             <p className="text-sm text-[#4D5870]">{t.syncLastUpdate} {lastUpdatedLabel}</p>
             <p className="text-xs text-[#4D5870]/60">{t.syncAutoRefresh}</p>
           </div>
+          <div className="flex flex-col justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 p-4 text-xs font-semibold text-[#4D5870] shadow">
+            <span className="uppercase tracking-[0.25em] text-[#4D5870]/70">{t.languageToggle}</span>
+            <div className="inline-flex overflow-hidden rounded-lg border border-[#DDE7F0] bg-white shadow-sm">
+              {(["fr", "en"] as Language[]).map((lang) => (
+                <button
+                  key={lang}
+                  className={`px-3 py-2 text-xs font-semibold transition ${
+                    language === lang ? "bg-[#2C7AF2] text-white" : "text-[#4D5870] hover:bg-[#EEF7FF]"
+                  }`}
+                  onClick={() => setLanguage(lang)}
+                  type="button"
+                >
+                  {lang.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <header className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#4D5870]/60">{t.mainHeaderBadge}</p>
+          <h1 className="text-4xl font-semibold leading-tight text-[#2C7AF2]">{t.mainHeaderTitle}</h1>
+          <p className="text-sm text-[#4D5870]/70">{t.mainHeaderBody}</p>
         </header>
 
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#4D5870]/60">{t.kpiBadge}</p>
