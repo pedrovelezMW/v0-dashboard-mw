@@ -46,8 +46,8 @@ const translations = {
     apiKeyToggleHide: "Masquer",
     apiKeyToggleShow: "Afficher",
     mainHeaderBadge: "🏭 MAIN HEADER",
-    mainHeaderTitle: "Shopfloor Visual Management",
-    mainHeaderBody: "Pilotage en temps réel des interventions issues de Mobility Work.",
+    mainHeaderTitle: "Shopfloor visual management into Daily KPIS",
+    mainHeaderBody: "",
     syncBadge: "🔄 SYNCHRONISATION",
     syncTitle: "État de synchronisation",
     syncLastUpdate: "Dernière mise à jour :",
@@ -113,8 +113,8 @@ const translations = {
     apiKeyToggleHide: "Hide",
     apiKeyToggleShow: "Show",
     mainHeaderBadge: "🏭 MAIN HEADER",
-    mainHeaderTitle: "Shopfloor Visual Management",
-    mainHeaderBody: "Real-time steering of interventions from Mobility Work.",
+    mainHeaderTitle: "Shopfloor visual management into Daily KPIS",
+    mainHeaderBody: "",
     syncBadge: "🔄 SYNCHRONISATION",
     syncTitle: "Sync status",
     syncLastUpdate: "Last update:",
@@ -425,14 +425,14 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-7xl space-y-8">
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/80 p-4 shadow">
-            <div className="h-12 w-48 overflow-hidden rounded-xl bg-white/80 shadow-sm ring-1 ring-[#DDE7F0]/70">
+          <div className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/80 p-6 shadow">
+            <div className="relative h-24 w-full overflow-hidden rounded-xl bg-white/80 shadow-sm ring-1 ring-[#DDE7F0]/70">
               <Image
                 src="/Logo%20Mobility%20Work@2x%20(1).png"
                 alt="Mobility Work logo"
-                width={192}
-                height={48}
-                className="h-full w-full object-contain"
+                fill
+                sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw"
+                className="object-contain"
                 priority
               />
             </div>
@@ -504,7 +504,7 @@ export default function DashboardPage() {
             <p className="text-sm text-[#4D5870]">{t.syncLastUpdate} {lastUpdatedLabel}</p>
             <p className="text-xs text-[#4D5870]/60">{t.syncAutoRefresh}</p>
           </div>
-          <div className="flex flex-col justify-center gap-2 rounded-2xl border border-white/60 bg-white/70 p-4 text-xs font-semibold text-[#4D5870] shadow">
+          <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-white/60 bg-white/70 p-4 text-center text-xs font-semibold text-[#4D5870] shadow">
             <span className="uppercase tracking-[0.25em] text-[#4D5870]/70">{t.languageToggle}</span>
             <div className="inline-flex overflow-hidden rounded-lg border border-[#DDE7F0] bg-white shadow-sm">
               {(["fr", "en"] as Language[]).map((lang) => (
@@ -523,9 +523,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <header className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#4D5870]/60">{t.mainHeaderBadge}</p>
           <h1 className="text-4xl font-semibold leading-tight text-[#2C7AF2]">{t.mainHeaderTitle}</h1>
-          <p className="text-sm text-[#4D5870]/70">{t.mainHeaderBody}</p>
         </header>
 
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#4D5870]/60">{t.kpiBadge}</p>
