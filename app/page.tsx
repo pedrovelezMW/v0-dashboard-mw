@@ -62,9 +62,9 @@ const translations = {
     kpiDoneHelper: "Clôturées",
     kpiLateLabel: "Tâches en retard",
     kpiLateHelper: "À traiter en priorité",
-    todaysInterventions: "Tâches du jour",
-    todaysInterventionsHelper: "Tâches planifiées ou en cours pour le shift actuel.",
-    todaysInterventionsEmpty: "Aucune tâche prévue aujourd'hui.",
+    plannedTodayTitle: "Tâches du jour",
+    plannedTodayHelper: "Toutes les tâches prévues aujourd'hui qui ne sont pas terminées.",
+    plannedTodayEmpty: "Aucune tâche planifiée en attente aujourd'hui.",
     newInterventions: "Nouvelles tâches",
     newInterventionsHelper: "Tâches enregistrées aujourd'hui.",
     newInterventionsEmpty: "Aucune nouvelle tâche pour le moment.",
@@ -129,9 +129,9 @@ const translations = {
     kpiDoneHelper: "Closed",
     kpiLateLabel: "Late tasks",
     kpiLateHelper: "Priority to handle",
-    todaysInterventions: "Today's tasks",
-    todaysInterventionsHelper: "Tasks scheduled or in progress for the current shift.",
-    todaysInterventionsEmpty: "No task planned today.",
+    plannedTodayTitle: "Today's tasks",
+    plannedTodayHelper: "Every task scheduled today that is not completed.",
+    plannedTodayEmpty: "No pending task planned for today.",
     newInterventions: "New tasks",
     newInterventionsHelper: "Tasks recorded today.",
     newInterventionsEmpty: "No new task for now.",
@@ -305,16 +305,15 @@ export default function DashboardPage() {
     })
     .slice(0, 10)
   const ongoingTasks = metrics.ongoingTasks.slice(0, 8)
-  const todaysTasks = useMemo(() => {
-    const relevantStates = new Set(["planned", "scheduled", "ongoing", "in-progress"])
+  const plannedTodayTasks = useMemo(() => {
+    const excludedStates = new Set(["completed", "canceled"])
     return [...metrics.scheduledToday]
-      .filter((task) => relevantStates.has(resolveTaskState(task)))
+      .filter((task) => !excludedStates.has(resolveTaskState(task)))
       .sort((a, b) => {
         const dateA = new Date(getScheduledAt(a) || "").getTime()
         const dateB = new Date(getScheduledAt(b) || "").getTime()
         return dateA - dateB
       })
-      .slice(0, 12)
   }, [metrics.scheduledToday])
   const plannedAndCompletedToday = metrics.plannedAndCompletedToday.length
 
@@ -544,30 +543,43 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-6">
             <Card className="border-[#DDE7F0] bg-white text-[#4D5870]">
               <CardHeader>
-                <CardTitle className="text-2xl font-semibold">{t.todaysInterventions}</CardTitle>
-                <p className="text-sm text-[#4D5870]/70">{t.todaysInterventionsHelper}</p>
+                <CardTitle className="text-2xl font-semibold">{t.plannedTodayTitle}</CardTitle>
+                <p className="text-sm text-[#4D5870]/70">{t.plannedTodayHelper}</p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {todaysTasks.length === 0 ? (
-                  <p className="text-center text-sm text-[#4D5870]/70">{t.todaysInterventionsEmpty}</p>
+              <CardContent className="space-y-3">
+                {plannedTodayTasks.length === 0 ? (
+                  <p className="text-center text-sm text-[#4D5870]/70">{t.plannedTodayEmpty}</p>
                 ) : (
-                  todaysTasks.map((task) => {
+                  plannedTodayTasks.map((task) => {
                     const scheduledDate = getScheduledAt(task)
+                    const state = resolveTaskState(task)
                     return (
-                      <div key={task.id} className="rounded-xl border border-[#EEF2FB] bg-[#F7F8FA] p-4">
-                        <div className="flex items-center justify-between text-xs text-[#4D5870]/70">
-                          <span>{formatDate(scheduledDate)}</span>
-                          <span>{formatTime(scheduledDate)}</span>
-                        </div>
-                        <p className="mt-2 text-base font-semibold text-[#2C7AF2]">
-                          {task.equipmentName || task.equipment || t.defaultEquipment}
-                        </p>
-                        <p className="text-sm text-[#4D5870]">{truncate(task.description, 80)}</p>
-                        <div className="mt-3 flex items-center justify-between text-xs">
-                          <span className="inline-flex rounded-full bg-[#DDF6E6] px-3 py-1 font-semibold uppercase tracking-wide text-[#00DB2B]">
-                            {stateLabels[language][resolveTaskState(task)] || t.stateOther}
-                          </span>
-                          <span className="font-semibold text-[#57D2A5]">{task.assigneeName || t.unassigned}</span>
+                      <div
+                        key={task.id}
+                        className="rounded-xl border border-[#EEF2FB] bg-[#F7F8FA] p-4 shadow-sm ring-1 ring-[#DDE7F0]/70"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-3 text-xs text-[#4D5870]/70">
+                            <div className="rounded-lg bg-white px-3 py-2 text-center shadow-sm">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#4D5870]/60">
+                                {t.kpiScheduledLabel}
+                              </p>
+                              <p className="text-sm font-semibold text-[#2C7AF2]">{formatDate(scheduledDate)}</p>
+                              <p className="text-sm font-semibold text-[#2C7AF2]">{formatTime(scheduledDate)}</p>
+                            </div>
+                            <div>
+                              <p className="text-lg font-semibold text-[#2C7AF2]">
+                                {task.equipmentName || task.equipment || t.defaultEquipment}
+                              </p>
+                              <p className="text-sm text-[#4D5870]">{truncate(task.description, 90)}</p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2 text-xs sm:items-center">
+                            <span className="inline-flex rounded-full bg-[#DDF6E6] px-3 py-1 font-semibold uppercase tracking-wide text-[#00DB2B]">
+                              {stateLabels[language][state] || t.stateOther}
+                            </span>
+                            <span className="text-[#4D5870]/70">{t.assignedTo} {task.assigneeName || t.unassigned}</span>
+                          </div>
                         </div>
                       </div>
                     )
