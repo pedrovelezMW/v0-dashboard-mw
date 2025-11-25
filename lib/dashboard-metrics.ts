@@ -26,7 +26,7 @@ const getTaskDate = (task: MobilityWorkTask, key: "scheduledAt" | "createdAt" | 
   if (fallback) return fallback
 
   if (key === "scheduledAt") {
-    return task.startDateTime
+    return task.mobilityWorkData?.schedule?.from || task.startDateTime
   }
 
   return undefined
