@@ -46,6 +46,8 @@ const translations = {
     apiKeyToggleHide: "Masquer",
     apiKeyToggleShow: "Afficher",
     tagFilterTitle: "🏷️ FILTRAGE PAR TAG",
+    tagFilterHelper:
+      "Affiche uniquement les tâches qui contiennent au moins un des tags indiqués (séparez par des virgules). Utilisez le code du tag (ex: $preventive) et non son nom (ex: \"Préventive\").",
     tagFilterHelper: "Affiche uniquement les tâches qui contiennent au moins un des tags indiqués (séparez par des virgules).",
     tagFilterPlaceholder: "Ex : Sécurité, Électrique",
     tagFilterApply: "Appliquer",
@@ -119,6 +121,8 @@ const translations = {
     apiKeyToggleHide: "Hide",
     apiKeyToggleShow: "Show",
     tagFilterTitle: "🏷️ TAG FILTER",
+    tagFilterHelper:
+      "Only show tasks that contain at least one of the provided tags (comma-separated). Use the tag code (e.g. $preventive) rather than its name (e.g. \"Préventive\").",
     tagFilterHelper: "Only show tasks that contain at least one of the provided tags (comma-separated).",
     tagFilterPlaceholder: "e.g. Safety, Electrical",
     tagFilterApply: "Apply",
