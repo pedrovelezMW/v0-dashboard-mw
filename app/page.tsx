@@ -45,6 +45,13 @@ const translations = {
     apiKeyReset: "Réinitialiser",
     apiKeyToggleHide: "Masquer",
     apiKeyToggleShow: "Afficher",
+    tagFilterTitle: "🏷️ FILTRAGE PAR TAG",
+    tagFilterHelper:
+      "Affiche uniquement les tâches qui contiennent au moins un des tags indiqués (séparez par des virgules). Utilisez le code du tag (ex: $preventive) et non son nom (ex: \"Préventive\").",
+    tagFilterPlaceholder: "Ex : Sécurité, Électrique",
+    tagFilterApply: "Appliquer",
+    tagFilterClear: "Effacer les tags",
+    tagFilterEmpty: "Aucun filtre de tag actif. Toutes les tâches sont affichées.",
     mainHeaderBadge: "🏭 MAIN HEADER",
     mainHeaderTitle: "Shopfloor Visual Management",
     mainHeaderBody: "",
@@ -112,6 +119,13 @@ const translations = {
     apiKeyReset: "Reset",
     apiKeyToggleHide: "Hide",
     apiKeyToggleShow: "Show",
+    tagFilterTitle: "🏷️ TAG FILTER",
+    tagFilterHelper:
+      "Only show tasks that contain at least one of the provided tags (comma-separated). Use the tag code (e.g. $preventive) rather than its name (e.g. \"Préventive\").",
+    tagFilterPlaceholder: "e.g. Safety, Electrical",
+    tagFilterApply: "Apply",
+    tagFilterClear: "Clear tags",
+    tagFilterEmpty: "No active tag filter. All tasks are visible.",
     mainHeaderBadge: "🏭 MAIN HEADER",
     mainHeaderTitle: "Shopfloor Visual Management",
     mainHeaderBody: "",
@@ -242,6 +256,8 @@ export default function DashboardPage() {
   const [isEditingApiKey, setIsEditingApiKey] = useState(false)
   const [hasLoadedStoredKey, setHasLoadedStoredKey] = useState(false)
   const [showApiConfig, setShowApiConfig] = useState(true)
+  const [tagFilterInput, setTagFilterInput] = useState("")
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const { data, error } = useSWR(apiKey ? ["/api/tasks", apiKey] : null, fetcher, {
     refreshInterval: apiKey ? 30000 : 0,
   })
@@ -261,6 +277,18 @@ export default function DashboardPage() {
 
     const storedLanguage = (localStorage.getItem("dashboardLanguage") as Language | null) || "fr"
     setLanguage(storedLanguage)
+
+    const storedTags = localStorage.getItem("dashboardTags")
+    if (storedTags) {
+      try {
+        const parsed = JSON.parse(storedTags)
+        if (Array.isArray(parsed)) {
+          setSelectedTags(parsed.filter((tag) => typeof tag === "string"))
+        }
+      } catch (error) {
+        console.error("[v0] Failed to parse stored tags", error)
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -277,7 +305,31 @@ export default function DashboardPage() {
     localStorage.setItem("dashboardLanguage", language)
   }, [language])
 
-  const tasks: MobilityWorkTask[] = data?.tasks || []
+  useEffect(() => {
+    localStorage.setItem("dashboardTags", JSON.stringify(selectedTags))
+  }, [selectedTags])
+
+  const normalizedSelectedTags = useMemo(
+    () => selectedTags.map((tag) => tag.trim().toLowerCase()).filter(Boolean),
+    [selectedTags],
+  )
+
+  const tasks: MobilityWorkTask[] = useMemo(() => {
+    const sourceTasks: MobilityWorkTask[] = data?.tasks || []
+
+    if (normalizedSelectedTags.length === 0) return sourceTasks
+
+    return sourceTasks.filter((task) => {
+      const taskTags = (task.tags || [])
+        .flatMap((tag) => [tag.name, tag.code])
+        .filter(Boolean)
+        .map((tag) => tag.trim().toLowerCase())
+
+      if (taskTags.length === 0) return false
+
+      return normalizedSelectedTags.some((selectedTag) => taskTags.includes(selectedTag))
+    })
+  }, [data?.tasks, normalizedSelectedTags])
 
   const handleSaveApiKey = () => {
     const trimmed = apiKeyInput.trim()
@@ -394,6 +446,42 @@ export default function DashboardPage() {
 
   const maskedApiKeyDisplay = hasApiKey && !isEditingApiKey ? "********" : apiKeyInput
 
+  const handleAddTagsFromInput = () => {
+    const parts = tagFilterInput
+      .split(/[,;]/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+
+    if (parts.length === 0) return
+
+    setSelectedTags((prev) => {
+      const existing = new Set(prev.map((tag) => tag.trim().toLowerCase()))
+      const next = [...prev]
+
+      parts.forEach((part) => {
+        const normalized = part.toLowerCase()
+        if (!existing.has(normalized)) {
+          existing.add(normalized)
+          next.push(part)
+        }
+      })
+
+      return next
+    })
+
+    setTagFilterInput("")
+  }
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const normalized = tagToRemove.trim().toLowerCase()
+    setSelectedTags((prev) => prev.filter((tag) => tag.trim().toLowerCase() !== normalized))
+  }
+
+  const handleClearTags = () => {
+    setSelectedTags([])
+    setTagFilterInput("")
+  }
+
   return (
     <div className="relative min-h-screen bg-[#EEF7FF] px-4 py-8 text-[#4D5870]">
       {activeNotification && (
@@ -493,6 +581,61 @@ export default function DashboardPage() {
                       </Button>
                     )}
                   </div>
+                </div>
+                <div className="space-y-2 rounded-lg border border-[#EEF2FB] bg-[#F7F8FA] p-3">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#4D5870]/60">{t.tagFilterTitle}</p>
+                      <p className="text-sm text-[#4D5870]/70">{t.tagFilterHelper}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border border-[#DDE7F0] bg-white px-3 py-2 text-sm text-[#4D5870] shadow-inner focus:border-[#2C7AF2] focus:outline-none"
+                      placeholder={t.tagFilterPlaceholder}
+                      value={tagFilterInput}
+                      onChange={(event) => setTagFilterInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault()
+                          handleAddTagsFromInput()
+                        }
+                      }}
+                    />
+                    <div className="flex flex-wrap justify-end gap-2 sm:justify-start">
+                      <Button onClick={handleAddTagsFromInput} disabled={!tagFilterInput.trim()}>
+                        {t.tagFilterApply}
+                      </Button>
+                      {selectedTags.length > 0 && (
+                        <Button variant="ghost" onClick={handleClearTags} className="text-[#4D5870]">
+                          {t.tagFilterClear}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {selectedTags.length === 0 ? (
+                    <p className="text-xs text-[#4D5870]/70">{t.tagFilterEmpty}</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#2C7AF2] shadow"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            className="text-[#4D5870]/70 transition hover:text-[#2C7AF2]"
+                            onClick={() => handleRemoveTag(tag)}
+                            aria-label={`Remove tag ${tag}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
