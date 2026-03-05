@@ -9,7 +9,11 @@ export interface MobilityWorkTask {
   equipmentName?: string
   descriptionShort?: string
   assigneeName?: string
-  assignees?: (number | string | { firstName: string; lastName: string; email: string })[]
+  assignees?: (
+    | number
+    | string
+    | { firstName?: string; lastName?: string; email?: string; name?: string; type?: "individual" | "team" }
+  )[]
   status?: "pending" | "in-progress" | "completed" | "scheduled"
   taskState?: string
   createdAt?: string

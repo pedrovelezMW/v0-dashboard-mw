@@ -12,11 +12,17 @@ export function TaskCard({ task }: TaskCardProps) {
   const late = isTaskLate(task)
   const timeUntil = getTimeUntil(task.startDateTime)
 
-  const formatAssignee = (assignee: number | string | { firstName?: string; lastName?: string; email?: string }) => {
+  const formatAssignee = (assignee: number | string | { firstName?: string; lastName?: string; email?: string; name?: string; type?: "individual" | "team" }) => {
     if (typeof assignee === "object" && assignee !== null) {
-      const { firstName, lastName, email } = assignee
+      if (assignee.type === "team") {
+        return assignee.name || assignee.email || "Team"
+      }
+      const { firstName, lastName, email, name } = assignee
       if (firstName && lastName) {
         return `${firstName} ${lastName}`
+      }
+      if (name) {
+        return name
       }
       if (email) {
         return email
