@@ -78,7 +78,10 @@ export async function GET(request: NextRequest) {
     console.log(`[v0] Finished fetching ${allTasks.length} tasks across ${pageCount} pages`)
 
     const tasks: MobilityWorkTask[] = allTasks.map((task: any) => {
-      const primaryAssignee = task.assignees?.individuals?.[0]
+      const individualAssignees = task.assignees?.individuals || []
+      const teamAssignees = task.assignees?.teams || []
+      const primaryAssignee = individualAssignees[0]
+      const primaryTeam = teamAssignees[0]
       const scheduledDate =
         task.schedule?.from ||
         task.scheduled?.on ||
@@ -111,8 +114,18 @@ export async function GET(request: NextRequest) {
         startedAt: task.startedAt || task.started?.at,
         assigneeName:
           task.assignedTo?.name ||
-          (primaryAssignee ? `${primaryAssignee.firstName ?? ""} ${primaryAssignee.lastName ?? ""}`.trim() : undefined),
-        assignees: task.assignees?.individuals || [],
+          (primaryAssignee ? `${primaryAssignee.firstName ?? ""} ${primaryAssignee.lastName ?? ""}`.trim() : undefined) ||
+          primaryTeam?.name,
+        assignees: [
+          ...individualAssignees.map((individual: any) => ({
+            ...individual,
+            type: "individual" as const,
+          })),
+          ...teamAssignees.map((team: any) => ({
+            ...team,
+            type: "team" as const,
+          })),
+        ],
         priority: task.priority || "medium",
         tags: task.tags || [],
         equipment: task.equipment?.id || task.associatedTo?.id,

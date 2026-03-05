@@ -25,16 +25,24 @@ export function NewTaskNotification({ task, onDismiss }: NewTaskNotificationProp
 
   // Get assignee names
   const getAssigneeDisplay = () => {
+    type Assignee = MobilityWorkTask["assignees"] extends (infer T)[] ? T : never
+
     if (!task.assignees || task.assignees.length === 0) {
       return "Unassigned"
     }
 
-    const assigneeNames = task.assignees.map((assignee) => {
+    const assigneeNames = task.assignees.map((assignee: Assignee) => {
       // Handle object assignees with firstName, lastName, email
       if (typeof assignee === "object" && assignee !== null) {
-        const { firstName, lastName, email } = assignee
+        if (assignee.type === "team") {
+          return assignee.name || assignee.email || "Team"
+        }
+        const { firstName, lastName, email, name } = assignee
         if (firstName && lastName) {
           return `${firstName} ${lastName}`
+        }
+        if (name) {
+          return name
         }
         if (email) {
           return email

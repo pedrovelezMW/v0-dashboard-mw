@@ -249,6 +249,37 @@ const getScheduledAt = (task: MobilityWorkTask) =>
   task.mobilityWorkData?.schedule?.from ||
   task.startDateTime
 
+const formatAssignee = (assignee: MobilityWorkTask["assignees"] extends (infer T)[] ? T : never) => {
+  if (typeof assignee === "object" && assignee !== null) {
+    if (assignee.type === "team") {
+      return assignee.name || assignee.email || "Team"
+    }
+
+    const fullName = `${assignee.firstName ?? ""} ${assignee.lastName ?? ""}`.trim()
+    if (fullName) return fullName
+    if (assignee.name) return assignee.name
+    if (assignee.email) return assignee.email
+    return "Unknown"
+  }
+
+  if (typeof assignee === "string") return assignee
+  return `User #${assignee}`
+}
+
+const formatAssignees = (task: MobilityWorkTask, unassignedLabel: string) => {
+  if (!task.assignees || task.assignees.length === 0) {
+    return task.assigneeName || unassignedLabel
+  }
+
+  const assigneeNames = task.assignees.map(formatAssignee).filter(Boolean)
+
+  if (assigneeNames.length === 0) {
+    return task.assigneeName || unassignedLabel
+  }
+
+  return assigneeNames.join(", ")
+}
+
 export default function DashboardPage() {
   const [language, setLanguage] = useState<Language>("fr")
   const [apiKey, setApiKey] = useState("")
@@ -487,7 +518,7 @@ export default function DashboardPage() {
       {activeNotification && (
         <div className="pointer-events-none fixed inset-x-0 top-6 z-50 flex justify-center px-4">
           <div
-            className="w-full max-w-5xl scale-[1.2] rounded-[28px] border-[6px] border-[#FF9D9D] bg-[#FFCECE] p-10 text-[#4D5870] shadow-2xl"
+            className="w-full max-w-[96vw] scale-[1.2] rounded-[28px] border-[6px] border-[#FF9D9D] bg-[#FFCECE] p-10 text-[#4D5870] shadow-2xl"
             style={{ transformOrigin: "top center" }}
           >
             <p className="text-sm font-semibold uppercase tracking-[0.6em] text-[#4D5870]/70">{t.newTaskLabel}</p>
@@ -503,13 +534,13 @@ export default function DashboardPage() {
                 {activeNotificationCreatedAt ? formatTime(activeNotificationCreatedAt) : "-"}
               </span>
               <span>
-                {t.assignedTo} {activeNotification.assigneeName || t.unassigned}
+                {t.assignedTo} {formatAssignees(activeNotification, t.unassigned)}
               </span>
             </div>
           </div>
         </div>
       )}
-      <div className="mx-auto max-w-7xl space-y-8">
+      <div className="mx-auto w-full max-w-[96vw] space-y-8 2xl:max-w-[1900px]">
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="flex items-center justify-center rounded-2xl border border-white/60 bg-white/80 p-6 shadow">
@@ -682,7 +713,7 @@ export default function DashboardPage() {
         </section>
 
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#4D5870]/60">{t.sectionsBadge}</p>
-        <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-6">
             <Card className="border-[#DDE7F0] bg-white text-[#4D5870]">
               <CardHeader>
@@ -719,7 +750,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="flex flex-col justify-center gap-1 text-[#4D5870]/80">
                               <span className="text-xs uppercase tracking-wide text-[#4D5870]/60">{t.tableAssignee}</span>
-                              <span className="font-semibold">{task.assigneeName || t.unassigned}</span>
+                              <span className="font-semibold">{formatAssignees(task, t.unassigned)}</span>
                             </div>
                             <div className="flex flex-col items-start justify-center gap-2 md:items-center">
                               <span className="text-xs uppercase tracking-wide text-[#4D5870]/60">{t.tableStatus}</span>
@@ -760,7 +791,7 @@ export default function DashboardPage() {
                         <span className="inline-flex rounded-full bg-[#DDF6E6] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#00DB2B]">
                           {stateLabels[language][resolveTaskState(task)] || t.stateOther}
                         </span>
-                        <span className="font-semibold">{t.assignedTo} {task.assigneeName || t.unassigned}</span>
+                        <span className="font-semibold">{t.assignedTo} {formatAssignees(task, t.unassigned)}</span>
                       </div>
                     </div>
                   ))
@@ -826,7 +857,7 @@ export default function DashboardPage() {
                             <span className="text-xs uppercase tracking-wide text-[#4D5870]/60">{t.daysLabel}</span>
                             <span className="text-2xl font-bold text-[#FF9D9D]">{daysLate}</span>
                           </div>
-                          <span>{task.assigneeName || t.unassigned}</span>
+                          <span>{formatAssignees(task, t.unassigned)}</span>
                           <span>
                             <span className="rounded-full bg-[#F7F8FA] px-3 py-1 text-xs font-semibold uppercase text-[#4D5870]">
                               {stateLabels[language][resolveTaskState(task)] || t.stateOther}
